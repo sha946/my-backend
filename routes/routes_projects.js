@@ -16,7 +16,7 @@ function auth(req, res, next) {
   }
 }
 
-// GET /api/projects  — get all projects for logged-in user
+// GET /api/projects
 router.get("/", auth, async (req, res) => {
   try {
     const projects = await Project.find({ user: req.userId }).sort({ createdAt: -1 });
@@ -26,7 +26,7 @@ router.get("/", auth, async (req, res) => {
   }
 });
 
-// POST /api/projects  — create new project
+// POST /api/projects
 router.post("/", auth, async (req, res) => {
   try {
     const { name, type } = req.body;
@@ -39,7 +39,18 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
-// PUT /api/projects/:id/blocks  — save Blockly XML
+// GET /api/projects/:id/blocks  ← NEW
+router.get("/:id/blocks", auth, async (req, res) => {
+  try {
+    const project = await Project.findOne({ _id: req.params.id, user: req.userId });
+    if (!project) return res.status(404).json({ message: "المشروع غير موجود" });
+    res.json({ blocksSave: project.blocksSave || "" });
+  } catch (e) {
+    res.status(500).json({ message: "خطأ في الخادم" });
+  }
+});
+
+// PUT /api/projects/:id/blocks
 router.put("/:id/blocks", auth, async (req, res) => {
   try {
     const project = await Project.findOne({ _id: req.params.id, user: req.userId });
@@ -52,27 +63,26 @@ router.put("/:id/blocks", auth, async (req, res) => {
   }
 });
 
-// PUT /api/projects/:id/draw  — save Draw JSON
-router.put("/:id/draw", auth, async (req, res) => {
-  try {
-    const project = await Project.findOne({ _id: req.params.id, user: req.userId });
-    if (!project) return res.status(404).json({ message: "المشروع غير موجود" });
-    project.drawSave = req.body.drawSave ?? null;
-    // Required when updating Mixed fields in Mongoose
-    project.markModified("drawSave");
-    await project.save();
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ message: "خطأ في الخادم" });
-  }
-});
-
-// GET /api/projects/:id/draw  — load Draw JSON  ← NEW
+// GET /api/projects/:id/draw
 router.get("/:id/draw", auth, async (req, res) => {
   try {
     const project = await Project.findOne({ _id: req.params.id, user: req.userId });
     if (!project) return res.status(404).json({ message: "المشروع غير موجود" });
     res.json({ drawSave: project.drawSave ?? null });
+  } catch (e) {
+    res.status(500).json({ message: "خطأ في الخادم" });
+  }
+});
+
+// PUT /api/projects/:id/draw
+router.put("/:id/draw", auth, async (req, res) => {
+  try {
+    const project = await Project.findOne({ _id: req.params.id, user: req.userId });
+    if (!project) return res.status(404).json({ message: "المشروع غير موجود" });
+    project.drawSave = req.body.drawSave ?? null;
+    project.markModified("drawSave");
+    await project.save();
+    res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ message: "خطأ في الخادم" });
   }
