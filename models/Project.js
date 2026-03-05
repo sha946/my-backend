@@ -21,9 +21,10 @@ const projectSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    // Changed from String to Mixed so Mongoose can store the strokes object
     drawSave: {
-      type: String,
-      default: "",
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
     },
   },
   { timestamps: true }

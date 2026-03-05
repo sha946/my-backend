@@ -57,9 +57,22 @@ router.put("/:id/draw", auth, async (req, res) => {
   try {
     const project = await Project.findOne({ _id: req.params.id, user: req.userId });
     if (!project) return res.status(404).json({ message: "المشروع غير موجود" });
-    project.drawSave = req.body.drawSave || "";
+    project.drawSave = req.body.drawSave ?? null;
+    // Required when updating Mixed fields in Mongoose
+    project.markModified("drawSave");
     await project.save();
     res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ message: "خطأ في الخادم" });
+  }
+});
+
+// GET /api/projects/:id/draw  — load Draw JSON  ← NEW
+router.get("/:id/draw", auth, async (req, res) => {
+  try {
+    const project = await Project.findOne({ _id: req.params.id, user: req.userId });
+    if (!project) return res.status(404).json({ message: "المشروع غير موجود" });
+    res.json({ drawSave: project.drawSave ?? null });
   } catch (e) {
     res.status(500).json({ message: "خطأ في الخادم" });
   }
