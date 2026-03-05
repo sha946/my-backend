@@ -4,26 +4,16 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-
-// ← CORS must be FIRST, before everything else
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
-app.options('*', cors());   // handle preflight for ALL routes
-
-app.use(express.json({ limit: '2mb' }));
+app.use(cors());
+app.use(express.json());
 
 // Routes
-app.use('/api/auth',     require('./routes/auth'));
-app.use('/api/projects', require('./routes/projects'));
-
-app.get('/', (req, res) => res.send('🤖 Robot API is running!'));
+app.use('/api/auth', require('./routes/auth'));
 
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log('✅ MongoDB connected');
-    app.listen(process.env.PORT || 8080, () => console.log(`🚀 Server on port ${process.env.PORT || 8080}`));
-  })
-  .catch(err => { console.error('❌ MongoDB error:', err); process.exit(1); });
+  .then(() => console.log('✅ MongoDB Connected'))
+  .catch(err => console.error(err));
+
+app.listen(process.env.PORT || 5000, () => {
+  console.log(`🚀 Server running on port ${process.env.PORT || 5000}`);
+});
