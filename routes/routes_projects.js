@@ -1,7 +1,7 @@
 const express = require("express");
 const router  = express.Router();
 const jwt     = require("jsonwebtoken");
-const User    = require("../models/User");
+const Project = require("../models/Project");
 
 // ── Middleware: verify JWT ──────────────────────────────────────
 function auth(req, res, next) {
@@ -16,34 +16,84 @@ function auth(req, res, next) {
   }
 }
 
-// GET /api/user/me  — fetch current user's profile (including avatar)
-router.get("/me", auth, async (req, res) => {
+// GET /api/projects
+router.get("/", auth, async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select("-password");
-    if (!user) return res.status(404).json({ message: "المستخدم غير موجود" });
-    res.json(user);
-  } catch {
+    const projects = await Project.find({ user: req.userId }).sort({ createdAt: -1 });
+    res.json(projects);
+  } catch (e) {
     res.status(500).json({ message: "خطأ في الخادم" });
   }
 });
 
-// PUT /api/user/profile  — update avatar, avatarBg, name
-router.put("/profile", auth, async (req, res) => {
+// POST /api/projects
+router.post("/", auth, async (req, res) => {
   try {
-    const { avatar, avatarBg, name } = req.body;
-    const updates = {};
-    if (avatar)    updates.avatar   = avatar;
-    if (avatarBg)  updates.avatarBg = avatarBg;
-    if (name)      updates.name     = name;
+    const { name, type } = req.body;
+    if (!name || !type) return res.status(400).json({ message: "الاسم والنوع مطلوبان" });
+    const project = new Project({ user: req.userId, name, type });
+    await project.save();
+    res.status(201).json(project);
+  } catch (e) {
+    res.status(500).json({ message: "خطأ في الخادم" });
+  }
+});
 
-    const user = await User.findByIdAndUpdate(
-      req.userId,
-      { $set: updates },
-      { new: true, select: "-password" }
-    );
-    if (!user) return res.status(404).json({ message: "المستخدم غير موجود" });
-    res.json(user);
-  } catch {
+// GET /api/projects/:id/blocks  ← NEW
+router.get("/:id/blocks", auth, async (req, res) => {
+  try {
+    const project = await Project.findOne({ _id: req.params.id, user: req.userId });
+    if (!project) return res.status(404).json({ message: "المشروع غير موجود" });
+    res.json({ blocksSave: project.blocksSave || "" });
+  } catch (e) {
+    res.status(500).json({ message: "خطأ في الخادم" });
+  }
+});
+
+// PUT /api/projects/:id/blocks
+router.put("/:id/blocks", auth, async (req, res) => {
+  try {
+    const project = await Project.findOne({ _id: req.params.id, user: req.userId });
+    if (!project) return res.status(404).json({ message: "المشروع غير موجود" });
+    project.blocksSave = req.body.blocksSave || "";
+    await project.save();
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ message: "خطأ في الخادم" });
+  }
+});
+
+// GET /api/projects/:id/draw
+router.get("/:id/draw", auth, async (req, res) => {
+  try {
+    const project = await Project.findOne({ _id: req.params.id, user: req.userId });
+    if (!project) return res.status(404).json({ message: "المشروع غير موجود" });
+    res.json({ drawSave: project.drawSave ?? null });
+  } catch (e) {
+    res.status(500).json({ message: "خطأ في الخادم" });
+  }
+});
+
+// PUT /api/projects/:id/draw
+router.put("/:id/draw", auth, async (req, res) => {
+  try {
+    const project = await Project.findOne({ _id: req.params.id, user: req.userId });
+    if (!project) return res.status(404).json({ message: "المشروع غير موجود" });
+    project.drawSave = req.body.drawSave ?? null;
+    project.markModified("drawSave");
+    await project.save();
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ message: "خطأ في الخادم" });
+  }
+});
+
+// DELETE /api/projects/:id
+router.delete("/:id", auth, async (req, res) => {
+  try {
+    await Project.findOneAndDelete({ _id: req.params.id, user: req.userId });
+    res.json({ ok: true });
+  } catch (e) {
     res.status(500).json({ message: "خطأ في الخادم" });
   }
 });
